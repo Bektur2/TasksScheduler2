@@ -3,6 +3,9 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from tzlocal import get_localzone_name
 
+import asyncio
+
+from scheduler import scheduler
 
 
 def main():
@@ -15,6 +18,7 @@ def main():
         print()
         print("1. добавить задачу")
         print("2. список задач")
+        print("3. запустить диспетчера")
         print("0. выход")
 
 
@@ -31,6 +35,13 @@ def main():
 
         elif choice == "2":
             show_tasks()
+        
+        elif choice == "3":
+            try:
+                asyncio.run(scheduler())
+
+            except KeyboardInterrupt:
+                print("\nдиспетчер остановлен")
 
         elif choice == "0":
             break
