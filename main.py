@@ -90,6 +90,9 @@ def show_tasks():
             f"{task['status']}"
         )
 
+        if task["error_reason"]:
+            print("ошибка:", task["error_reason"])
+
 
 
 
