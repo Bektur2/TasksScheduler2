@@ -94,3 +94,17 @@ def add_task(model, date_text, start_text, end_text, timezone):
             end_utc.isoformat(),
             timezone
         ))
+
+
+def get_tasks():
+
+    # получаем все задачи для отображения в интерфейсе
+    with sqlite3.connect(db) as conn:
+        conn.row_factory = sqlite3.Row
+
+
+        return conn.execute("""
+            select *
+            from tasks
+            order by id
+        """).fetchall()
