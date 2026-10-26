@@ -31,6 +31,10 @@ def parse_datetime(date_text, time_text, timezone):
     now = datetime.now(tz)
 
 
+    date_text = date_text.strip()
+    time_text = time_text.strip()
+
+
 
     if time_text.isdigit():
         time_text = f"{time_text}:00"

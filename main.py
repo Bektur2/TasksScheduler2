@@ -108,6 +108,10 @@ def create_task():
     end = input("время конца: ").strip()
 
 
+    if not model or not date or not start or not end:
+        raise ValueError("все поля должны быть заполнены")
+
+
     print()
     print("1. ввести часовой пояс")
     print("2. взять из системы")
@@ -120,6 +124,9 @@ def create_task():
         timezone = input(
             "часовой пояс, например Europe/Moscow: "
         ).strip()
+
+        if not timezone:
+            raise ValueError("часовой пояс не указан")
 
 
     elif choice == "2":

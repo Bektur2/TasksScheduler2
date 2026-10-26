@@ -16,7 +16,7 @@ proxies = [
     "proxy3"
 ]
 
-def run_viewer(model, proxy):
+def run_viewer(model):
 
     # имитируем результат запуска просмотрщика
     result = random.choice([
@@ -26,7 +26,7 @@ def run_viewer(model, proxy):
     ])
 
 
-    print(f"{model} | {proxy} | {result}")
+    print(f"{model} | {result}")
 
 
     return result
@@ -56,22 +56,43 @@ async def run_task(task):
     captcha_attempts = 0
     proxy_index = 0
 
+    end = datetime.fromisoformat(
+        task["end_at"]
+    )
+
 
     while True:
+
+        # если время задачи закончилось, новые попытки не делаем
+        if datetime.now(ZoneInfo("UTC")) >= end:
+            print(f"время задачи {task['id']} закончилось")
+            return
+
+
         proxy = proxies[proxy_index]
 
-        result = run_viewer(
-            task["model"],
+
+        print(
+            "используем прокси:",
             proxy
         )
+
+
+        result = run_viewer(
+            task["model"]
+        )
+
 
         if result == "ok":
             print(f"задача {task['id']} запущена")
             return
 
+
         if result == "captcha":
+
             # captcha можно повторить максимум 3 раза
             captcha_attempts += 1
+
 
             if captcha_attempts >= 3:
                 set_error(
@@ -80,15 +101,20 @@ async def run_task(task):
                 )
                 return
 
+
             print(
                 f"captcha, попытка {captcha_attempts}/3"
             )
 
+
             await asyncio.sleep(2)
 
+
         elif result == "proxy_dead":
+
             # если прокси умер, берём следующий
             proxy_index += 1
+
 
             if proxy_index >= len(proxies):
                 set_error(
@@ -96,6 +122,7 @@ async def run_task(task):
                     "рабочие прокси закончились"
                 )
                 return
+
 
             print(
                 "меняем прокси на",
@@ -110,6 +137,7 @@ async def scheduler():
 
 
     while True:
+
         # все сравнения времени делаем в utc
         now = datetime.now(ZoneInfo("UTC"))
 
@@ -134,6 +162,7 @@ async def scheduler():
 
 
                 if task["status"] == "pending" and start <= now < end:
+
                     # меняем статус только если задача всё ещё pending
                     cursor = conn.execute("""
                         update tasks
@@ -141,9 +170,13 @@ async def scheduler():
                         where id = ?
                         and status = 'pending'
                     """, (task["id"],))
+
+
                     # если строка изменилась, значит именно этот цикл запустил задачу
                     if cursor.rowcount == 1:
-                        print("задача запущена:", task["id"])
+                        asyncio.create_task(
+                            run_task(task)
+                        )
 
 
 
