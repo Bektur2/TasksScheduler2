@@ -1,10 +1,107 @@
 import asyncio
 import sqlite3
 
+import random
+
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from db import db
+
+
+proxies = [
+    "proxy1",
+    "proxy2",
+    "proxy3"
+]
+
+def run_viewer(model, proxy):
+
+    # имитируем результат запуска просмотрщика
+    result = random.choice([
+        "ok",
+        "captcha",
+        "proxy_dead"
+    ])
+
+
+    print(f"{model} | {proxy} | {result}")
+
+
+    return result
+
+
+
+
+
+def set_error(task_id, reason):
+
+
+    with sqlite3.connect(db) as conn:
+        conn.execute("""
+            update tasks
+            set status = 'error',
+                error_reason = ?
+            where id = ?
+        """, (reason, task_id))
+
+
+
+
+
+async def run_task(task):
+
+
+    captcha_attempts = 0
+    proxy_index = 0
+
+
+    while True:
+        proxy = proxies[proxy_index]
+
+        result = run_viewer(
+            task["model"],
+            proxy
+        )
+
+        if result == "ok":
+            print(f"задача {task['id']} запущена")
+            return
+
+        if result == "captcha":
+            # captcha можно повторить максимум 3 раза
+            captcha_attempts += 1
+
+            if captcha_attempts >= 3:
+                set_error(
+                    task["id"],
+                    "captcha: попытки закончились"
+                )
+                return
+
+            print(
+                f"captcha, попытка {captcha_attempts}/3"
+            )
+
+            await asyncio.sleep(2)
+
+        elif result == "proxy_dead":
+            # если прокси умер, берём следующий
+            proxy_index += 1
+
+            if proxy_index >= len(proxies):
+                set_error(
+                    task["id"],
+                    "рабочие прокси закончились"
+                )
+                return
+
+            print(
+                "меняем прокси на",
+                proxies[proxy_index]
+            )
+
 
 
 async def scheduler():
@@ -51,7 +148,7 @@ async def scheduler():
 
 
                 elif task["status"] == "running" and now >= end:
-                    
+
                     # время задачи закончилось
                     conn.execute("""
                         update tasks
